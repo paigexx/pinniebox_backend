@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paigexx/telegram-go-server/dto"
@@ -136,3 +137,54 @@ func (s *FilesService) List(c *gin.Context, telegramID string, chatID string, pa
     return pinataResp, nil
 }
 
+func (s *FilesService) GetSignedUrl(c *gin.Context, cid string) (string, error) {
+    url := `https://api.devpinata.cloud/v3/files/sign`
+    gateway := os.Getenv("PINATA_GATEWAY")
+
+    // Construct the full URL as per the required format
+    fileURL := fmt.Sprintf("%s/files/%s", gateway, cid)
+
+    payloadData := map[string]interface{}{
+        "url":     fileURL,
+        "method":  "GET",
+        "date":    time.Now().Unix(), // Current Unix timestamp
+        "expires": 3600,              // URL valid for 1 hour
+    }
+
+    payloadBytes, err := json.Marshal(payloadData)
+    if err != nil {
+        return "", fmt.Errorf("error marshalling payload: %w", err)
+    }
+
+    req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+    if err != nil {
+        return "", fmt.Errorf("error creating request: %s", err)
+    }
+
+    jwt := os.Getenv("PINATA_JWT")
+    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
+    req.Header.Set("Content-Type", "application/json") // Set the Content-Type header
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", fmt.Errorf("error sending request: %s", err)
+    }
+    defer resp.Body.Close()
+
+    responseBody, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return "", fmt.Errorf("error reading response: %s", err)
+    }
+    if resp.StatusCode != http.StatusOK {
+        return "", fmt.Errorf("error getting signed URL: %s", responseBody)
+    }
+
+    var pinataResp dto.SignedURLResponse
+    err = json.Unmarshal(responseBody, &pinataResp)
+    if err != nil {
+        return "", fmt.Errorf("error unmarshaling response: %s", err)
+    }
+
+    return pinataResp.Data, nil
+}

@@ -56,3 +56,13 @@ func (h Handler) List(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, files)
 }
+
+func (h Handler) GetSignedUrl(c *gin.Context) {
+	cid := c.Param("cid")
+	url, err := h.service.GetSignedUrl(c, cid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"url": url})
+}

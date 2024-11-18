@@ -14,5 +14,6 @@ func NewHandler(r *gin.RouterGroup) {
 
 	files.POST("", h.Upload)
 	files.GET("/:telegram_id/:chat_id", h.List)
+	files.GET("signedUrl/:cid", h.GetSignedUrl)
 }
 

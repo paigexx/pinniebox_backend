@@ -9,7 +9,6 @@ type FileUploadRequest struct {
 	TelegramID string `json:"tg_id"`
 }
 
-
 type FileUploadResponse struct {  
 	Data struct {
 	ID            string            `json:"id"`
@@ -42,4 +41,9 @@ type ListFilesResponse struct {
         Files          []File `json:"files"`
         NextPageToken  string `json:"next_page_token"`
     } `json:"data"`
+}
+
+
+type SignedURLResponse struct {
+	Data string `json:"data"`
 }
