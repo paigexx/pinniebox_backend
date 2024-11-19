@@ -21,7 +21,7 @@ func NewFilesService() *FilesService {
 }
 
 
-func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName string, telegramID string, chatID string, chatType string) (error) {
+func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName string, chatID string) (error) {
     // Create a buffer to hold the multipart form data for Pinata
     var buf bytes.Buffer
     writer := multipart.NewWriter(&buf)
@@ -40,9 +40,7 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 
 	// Create a map with your key-value pairs
 	keyvaluesData := map[string]interface{}{
-    "chat_id":     chatID,
-    "telegram_id": telegramID,
-    "chat_type":   chatType,
+    fmt.Sprintf("%v", chatID): "true",
 }
 
 	// Marshal the map into a JSON string
@@ -65,7 +63,7 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 
     // Continue with the rest of your code...
     // Create a new POST request to Pinata's file upload endpoint
-    url := "https://uploads.devpinata.cloud/v3/files"
+    url := "https://uploads.pinata.cloud/v3/files"
     req, err := http.NewRequest("POST", url, &buf)
     if err != nil {
         return fmt.Errorf("error creating request: %s", err)
@@ -103,8 +101,8 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 
 func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dto.ListFilesResponse, error) {
 
-	url := fmt.Sprintf(`https://api.devpinata.cloud/v3/files?pageToken=%v&metadata[chat_id]=%v&limit=5`, pageToken, chatID)
-	fmt.Printf("url: %v", url)
+	url := fmt.Sprintf(`https://api.pinata.cloud/v3/files?pageToken=%v&metadata[%v]=true&limit=4`, pageToken, chatID)
+
 	req, err := http.NewRequest("GET", url, nil)
     if err != nil {
         return dto.ListFilesResponse{}, fmt.Errorf("error creating request: %s", err)
@@ -138,7 +136,7 @@ func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dt
 }
 
 func (s *FilesService) GetSignedUrl(c *gin.Context, cid string) (string, error) {
-    url := `https://api.devpinata.cloud/v3/files/sign`
+    url := `https://api.pinata.cloud/v3/files/sign`
     gateway := os.Getenv("PINATA_GATEWAY")
 
     // Construct the full URL as per the required format
