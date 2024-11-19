@@ -101,9 +101,9 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 	return nil
 }
 
-func (s *FilesService) List(c *gin.Context, telegramID string, chatID string, pageToken string) (dto.ListFilesResponse, error) {
+func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dto.ListFilesResponse, error) {
 
-	url := fmt.Sprintf(`https://api.devpinata.cloud/v3/files?pageToken=%v&metadata[telegram_id]=%v&metadata[chat_id]=%v&limit=5`, pageToken, telegramID, chatID)
+	url := fmt.Sprintf(`https://api.devpinata.cloud/v3/files?pageToken=%v&metadata[chat_id]=%v&limit=5`, pageToken, chatID)
 	fmt.Printf("url: %v", url)
 	req, err := http.NewRequest("GET", url, nil)
     if err != nil {

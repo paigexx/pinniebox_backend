@@ -46,10 +46,9 @@ func (h Handler) Upload(c *gin.Context) {
 }
 
 func (h Handler) List(c *gin.Context) {
-	telegramID := c.Param("telegram_id")
 	chatID := c.Param("chat_id")
 	pageToken := c.Query("pageToken")
-	files, err := h.service.List(c, telegramID, chatID, pageToken)
+	files, err := h.service.List(c, chatID, pageToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
