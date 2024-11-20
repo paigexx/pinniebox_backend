@@ -152,7 +152,7 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 
 func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dto.ListFilesResponse, error) {
 
-	url := fmt.Sprintf(`https://api.pinata.cloud/v3/files?pageToken=%v&metadata[%v]=true&limit=4`, pageToken, chatID)
+	url := fmt.Sprintf(`https://api.pinata.cloud/v3/files?pageToken=%v&metadata[%v]=true&limit=5`, pageToken, chatID)
 
 	req, err := http.NewRequest("GET", url, nil)
     if err != nil {
