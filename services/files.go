@@ -21,7 +21,7 @@ func NewFilesService() *FilesService {
 }
 
 
-func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName string, chatID string) (error) {
+func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName string, chatID string) (string, error) {
     // Create a buffer to hold the multipart form data for Pinata
     var buf bytes.Buffer
     writer := multipart.NewWriter(&buf)
@@ -29,13 +29,13 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
     // Create a form file field named "file"
     part, err := writer.CreateFormFile("file", fileName)
     if err != nil {
-        return fmt.Errorf("error creating form file: %s", err)
+        return "", fmt.Errorf("error creating form file: %s", err)
     }
 
     // Copy the uploaded file data to the form file field
     _, err = io.Copy(part, file)
     if err != nil {
-        return fmt.Errorf("error copying file data: %s", err)
+        return "", fmt.Errorf("error copying file data: %s", err)
     }
 
 	// Create a map with your key-value pairs
@@ -46,19 +46,19 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 	// Marshal the map into a JSON string
 	keyvaluesJSON, err := json.Marshal(keyvaluesData)
 	if err != nil {
-		return fmt.Errorf("error marshaling keyvalues: %s", err)
+		return "", fmt.Errorf("error marshaling keyvalues: %s", err)
 	}
 
 	// Write the JSON string to the form field
 	err = writer.WriteField("keyvalues", string(keyvaluesJSON))
 	if err != nil {
-		return fmt.Errorf("error writing keyvalues field: %s", err)
+		return "", fmt.Errorf("error writing keyvalues field: %s", err)
 	}
 
     // Close the writer to finalize the multipart form data
     err = writer.Close()
     if err != nil {
-        return fmt.Errorf("error closing writer: %s", err)
+        return "", fmt.Errorf("error closing writer: %s", err)
     }
 
     // Continue with the rest of your code...
@@ -66,7 +66,7 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
     url := "https://uploads.pinata.cloud/v3/files"
     req, err := http.NewRequest("POST", url, &buf)
     if err != nil {
-        return fmt.Errorf("error creating request: %s", err)
+        return "", fmt.Errorf("error creating request: %s", err)
     }
 
     // Set the appropriate headers, including your Pinata JWT token
@@ -78,25 +78,76 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        return fmt.Errorf("error sending request: %s", err)
+        return "", fmt.Errorf("error sending request: %s", err)
     }
     defer resp.Body.Close()
 
 	// Read the response from Pinata
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("error reading response: %s", err)
+		return "", fmt.Errorf("error reading response: %s", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error uploading file: %s", responseBody)
+		return "", fmt.Errorf("error uploading file: %s", responseBody)
 	}
 
 	var pinataResp dto.FileUploadResponse
 	err = json.Unmarshal(responseBody, &pinataResp)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling response: %s", err)
+		return "", fmt.Errorf("error unmarshaling response: %s", err)
 	}
-	return nil
+
+    if pinataResp.Data.IsDuplicate != nil && *pinataResp.Data.IsDuplicate {
+        url := fmt.Sprintf(`https://api.pinata.cloud/v3/files/%s`, pinataResp.Data.ID)
+    
+        // Create payload with the new keyvalues
+        payloadData := map[string]interface{}{
+            "keyvalues": map[string]string{
+                fmt.Sprintf("%v", chatID): "true",
+            },
+        }
+    
+        payloadBytes, err := json.Marshal(payloadData)
+        if err != nil {
+            return "", fmt.Errorf("error marshalling payload: %s", err)
+        }
+    
+        // Create the PUT request
+        req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payloadBytes))
+        if err != nil {
+            return "", fmt.Errorf("error creating request: %s", err)
+        }
+    
+        jwt := os.Getenv("PINATA_JWT")
+        req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
+        req.Header.Set("Content-Type", "application/json")
+    
+        // Send the PUT request
+        client := &http.Client{}
+        resp, err := client.Do(req)
+        if err != nil {
+            return "", fmt.Errorf("error sending request: %s", err)
+        }
+        defer resp.Body.Close()
+    
+        // Read the response
+        responseBody, err := io.ReadAll(resp.Body)
+        if err != nil {
+            return "", fmt.Errorf("error reading response: %s", err)
+        }
+        if resp.StatusCode != http.StatusOK {
+            return "", fmt.Errorf("error updating metadata: %s", responseBody)
+        }
+    
+        var updateResp dto.UpdateFileResponse
+        err = json.Unmarshal(responseBody, &updateResp)
+        if err != nil {
+            return "", fmt.Errorf("error unmarshaling response: %s", err)
+        }
+
+        return pinataResp.Data.ID, nil
+    }
+	return pinataResp.Data.ID, nil
 }
 
 func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dto.ListFilesResponse, error) {

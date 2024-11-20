@@ -34,12 +34,12 @@ func (h Handler) Upload(c *gin.Context) {
 	defer file.Close()
 	chatID := c.Request.FormValue("chat_id")
 
-	err = h.service.Upload(c, file, handler.Filename, chatID)
+	id, err := h.service.Upload(c, file, handler.Filename, chatID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}	
-  	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully"})
+  	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
 func (h Handler) List(c *gin.Context) {

@@ -47,3 +47,8 @@ type ListFilesResponse struct {
 type SignedURLResponse struct {
 	Data string `json:"data"`
 }
+
+type UpdateFileResponse struct {
+	Data File `json:"data"`
+}
+
