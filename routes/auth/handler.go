@@ -12,7 +12,7 @@ func NewHandler(r *gin.RouterGroup) {
 	service := services.NewAuthService()
 	h := newHandler(*service)
 
-	auth.POST("/telegram", h.Authenticate)
+	auth.POST("", h.Authenticate)
 	
 }
 
