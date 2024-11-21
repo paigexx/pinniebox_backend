@@ -1,14 +1,11 @@
 package dto
 
-type FilesResponse struct {
-	ID 	string    `json:"id"`
-}
-
 type FileUploadRequest struct {
 	File string `json:"file"`
 	TelegramID string `json:"tg_id"`
 }
 
+//responses from Pinata Files API
 type FileUploadResponse struct {  
 	Data struct {
 	ID            string            `json:"id"`
@@ -43,12 +40,10 @@ type ListFilesResponse struct {
     } `json:"data"`
 }
 
-
-type SignedURLResponse struct {
-	Data string `json:"data"`
-}
-
 type UpdateFileResponse struct {
 	Data File `json:"data"`
 }
 
+type SignedURLResponse struct {
+	Data string `json:"data"`
+}

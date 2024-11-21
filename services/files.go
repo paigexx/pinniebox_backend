@@ -145,7 +145,7 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
             return "", fmt.Errorf("error unmarshaling response: %s", err)
         }
 
-        return pinataResp.Data.ID, nil
+        return updateResp.Data.ID, nil
     }
 	return pinataResp.Data.ID, nil
 }
