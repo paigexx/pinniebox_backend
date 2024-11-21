@@ -36,7 +36,6 @@ func main() {
 	// Create a Gin router with default middleware
 	r := gin.Default()
 	r.Use(cors.New(corsConfig))
-	r.RedirectTrailingSlash = false
 	routes.ApplyRoutes(r)
 
     // Start the server
