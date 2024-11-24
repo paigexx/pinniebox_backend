@@ -97,57 +97,61 @@ func (s *FilesService) Upload(c *gin.Context, file multipart.File, fileName stri
 		return "", fmt.Errorf("error unmarshaling response: %s", err)
 	}
 
+    // Check if the file is a duplicate, if so update the metadata with the chatID
     if pinataResp.Data.IsDuplicate != nil && *pinataResp.Data.IsDuplicate {
-        url := fmt.Sprintf(`https://api.pinata.cloud/v3/files/%s`, pinataResp.Data.ID)
-    
-        // Create payload with the new keyvalues
-        payloadData := map[string]interface{}{
-            "keyvalues": map[string]string{
-                fmt.Sprintf("%v", chatID): "true",
-            },
-        }
-    
-        payloadBytes, err := json.Marshal(payloadData)
-        if err != nil {
-            return "", fmt.Errorf("error marshalling payload: %s", err)
-        }
-    
-        // Create the PUT request
-        req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payloadBytes))
-        if err != nil {
-            return "", fmt.Errorf("error creating request: %s", err)
-        }
-    
-        jwt := os.Getenv("PINATA_JWT")
-        req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
-        req.Header.Set("Content-Type", "application/json")
-    
-        // Send the PUT request
-        client := &http.Client{}
-        resp, err := client.Do(req)
-        if err != nil {
-            return "", fmt.Errorf("error sending request: %s", err)
-        }
-        defer resp.Body.Close()
-    
-        // Read the response
-        responseBody, err := io.ReadAll(resp.Body)
-        if err != nil {
-            return "", fmt.Errorf("error reading response: %s", err)
-        }
-        if resp.StatusCode != http.StatusOK {
-            return "", fmt.Errorf("error updating metadata: %s", responseBody)
-        }
-    
-        var updateResp dto.UpdateFileResponse
-        err = json.Unmarshal(responseBody, &updateResp)
-        if err != nil {
-            return "", fmt.Errorf("error unmarshaling response: %s", err)
-        }
-
-        return updateResp.Data.ID, nil
+     s.UpdateMetadata(pinataResp.Data.ID, chatID)
     }
 	return pinataResp.Data.ID, nil
+}
+
+func (s *FilesService) UpdateMetadata(fileId string, chatId string) (string, error) {
+    url := fmt.Sprintf(`https://api.pinata.cloud/v3/files/%s`, fileId)
+    
+    // Create payload with the new keyvalues
+    payloadData := map[string]interface{}{
+        "keyvalues": map[string]string{
+            fmt.Sprintf("%v", chatId): "true",
+        },
+    }
+
+    payloadBytes, err := json.Marshal(payloadData)
+    if err != nil {
+        return "", fmt.Errorf("error marshalling payload: %s", err)
+    }
+
+    // Create the PUT request
+    req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payloadBytes))
+    if err != nil {
+        return "", fmt.Errorf("error creating request: %s", err)
+    }
+
+    jwt := os.Getenv("PINATA_JWT")
+    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
+    req.Header.Set("Content-Type", "application/json")
+
+    // Send the PUT request
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", fmt.Errorf("error sending request: %s", err)
+    }
+    defer resp.Body.Close()
+
+    // Read the response
+    responseBody, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return "", fmt.Errorf("error reading response: %s", err)
+    }
+    if resp.StatusCode != http.StatusOK {
+        return "", fmt.Errorf("error updating metadata: %s", responseBody)
+    }
+
+    var updateResp dto.UpdateFileResponse
+    err = json.Unmarshal(responseBody, &updateResp)
+    if err != nil {
+        return "", fmt.Errorf("error unmarshaling response: %s", err)
+    }
+    return updateResp.Data.ID, nil
 }
 
 func (s *FilesService) List(c *gin.Context, chatID string, pageToken string) (dto.ListFilesResponse, error) {
